@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL Cycle Demo — Agente Atrapado</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1a1a25;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #ff4d6a;
+    --accent-glow: rgba(255, 77, 106, 0.3);
+    --green: #4ade80;
+    --green-glow: rgba(74, 222, 128, 0.3);
+    --yellow: #fbbf24;
+    --yellow-glow: rgba(251, 191, 36, 0.3);
+    --blue: #60a5fa;
+    --blue-glow: rgba(96, 165, 250, 0.3);
+    --purple: #a78bfa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+    animation: fadeUp 0.8s ease-out;
+  }
+
+  .header .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(255, 77, 106, 0.1);
+    border: 1px solid rgba(255, 77, 106, 0.2);
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 1.2rem;
+  }
+
+  .header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(135deg, #fff 0%, #c0c0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header p {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Main layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.8rem;
+    animation: fadeUp 0.8s ease-out both;
+  }
+
+  .panel:nth-child(2) { animation-delay: 0.1s; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .panel-icon.red { background: rgba(255, 77, 106, 0.15); }
+  .panel-icon.green { background: rgba(74, 222, 128, 0.15); }
+
+  .panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .panel-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Grid World */
+  .grid-world {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 280px;
+    margin: 0 auto 1.5rem;
+    perspective: 600px;
+  }
+
+  .cell {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cell.wall {
+    background: #1e1e2e;
+    border-color: #333;
+  }
+
+  .cell.wall::after {
+    content: '';
+    width: 60%;
+    height: 60%;
+    background: repeating-linear-gradient(
+      45deg,
+      #333 0px, #333 4px,
+      transparent 4px, transparent 8px
+    );
+    border-radius: 6px;
+    opacity: 0.5;
+  }
+
+  .cell.goal {
+    background: rgba(74, 222, 128, 0.08);
+    border-color: rgba(74, 222, 128, 0.25);
+  }
+
+  .cell.agent {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.15);
+  }
+
+  .cell.agent.stuck {
+    background: rgba(255, 77, 106, 0.12);
+    border-color: rgba(255, 77, 106, 0.4);
+    box-shadow: 0 0 20px var(--accent-glow);
+    animation: shake 0.4s ease-in-out;
+  }
+
+  .cell.agent.success {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 30px var(--green-glow);
+    animation: pulse-green 0.6s ease-in-out;
+  }
+
+  .cell .coord {
+    position: absolute;
+    bottom: 3px;
+    right: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    opacity: 0.4;
+  }
+
+  /* Trail */
+  .cell.visited::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(96, 165, 250, 0.25);
+  }
+
+  .cell.visited-stuck::before {
+    background: rgba(255, 77, 106, 0.3);
+  }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .stat-value.red { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.15rem;
+  }
+
+  /* Log */
+  .log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem;
+    height: 160px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .log-entry { opacity: 0; animation: logIn 0.3s forwards; }
+  .log-entry .step-num { color: var(--text-dim); }
+  .log-entry .action { color: var(--blue); }
+  .log-entry .warning { color: var(--accent); }
+  .log-entry .success { color: var(--green); }
+  .log-entry .cycle { color: var(--yellow); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-play {
+    background: var(--blue);
+    color: #000;
+  }
+  .btn-play:hover { box-shadow: 0 4px 20px var(--blue-glow); }
+
+  .btn-step {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-step:hover { border-color: var(--blue); }
+
+  .btn-reset {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+  }
+
+  .speed-control label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .speed-control input[type="range"] {
+    flex: 1;
+    accent-color: var(--blue);
+    height: 4px;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .status-badge.idle {
+    background: rgba(136, 136, 160, 0.1);
+    color: var(--text-dim);
+    border: 1px solid rgba(136, 136, 160, 0.2);
+  }
+
+  .status-badge.running {
+    background: rgba(96, 165, 250, 0.1);
+    color: var(--blue);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    animation: blink 1s infinite;
+  }
+
+  .status-badge.stuck {
+    background: rgba(255, 77, 106, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(255, 77, 106, 0.3);
+  }
+
+  .status-badge.success {
+    background: rgba(74, 222, 128, 0.1);
+    color: var(--green);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Explanation section */
+  .explanation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    animation: fadeUp 0.8s ease-out 0.2s both;
+  }
+
+  .explanation h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .explanation p {
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .key-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+  }
+
+  .key-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .key-item .emoji { font-size: 1.4rem; margin-bottom: 0.4rem; }
+
+  .key-item strong {
+    font-family: 'Space Grotesk', sans-serif;
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  .key-item span {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0.5;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes logIn {
+    from { opacity: 0; transform: translateX(-5px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 20px var(--green-glow); }
+    50% { box-shadow: 0 0 40px var(--green-glow); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="tag">Reinforcement Learning · Interactive Demo</div>
+    <h1>¿Puede un Agente RL Quedar Atrapado en un Ciclo Infinito?</h1>
+    <p>Observa cómo una política mal diseñada atrapa al agente para siempre, y cómo la detección de ciclos lo rescata.</p>
+  </div>
+
+  <!-- Main panels -->
+  <div class="main-grid">
+    <!-- Panel 1: Sin protección -->
+    <div class="panel" id="panel1">
+      <div class="panel-header">
+        <div class="panel-icon red">🔴</div>
+        <div>
+          <div class="panel-title">Sin Protección</div>
+          <div class="panel-subtitle">Política determinista → ciclo</div>
+        </div>
+      </div>
+
+      <div class="status-badge idle" id="status1">
+        <div class="status-dot"></div>
+        <span>Esperando</span>
+      </div>
+
+      <div class="grid-world" id="grid1"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value blue" id="steps1">0</div>
+          <div class="stat-label">Pasos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value yellow" id="reward1">0</div>
+          <div class="stat-label">Recompensa</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value red" id="repeats1">0</div>
+          <div class="stat-label">Repeticiones</div>
+        </div>
+      </div>
+
+      <div class="log" id="log1"></div>
+
+      <div class="controls">
+        <button class="btn btn-play" onclick="runDemo(1, false)">▶ Ejecutar</button>
+        <button class="btn btn-step" onclick="stepDemo(1)">→ Paso</button>
+        <button class="btn btn-reset" onclick="resetDemo(1)">↺ Reset</button>
+      </div>
+      <div class="speed-control">
+        <label>Velocidad:</label>
+        <input type="range" min="50" max="800" value="350" id="speed1">
+        <label id="speedLabel1">350ms</label>
+      </div>
+    </div>
+
+    <!-- Panel 2: Con detección -->
+    <div class="panel" id="panel2">
+      <div class="panel-header">
+        <div class="panel-icon green">🟢</div>
+        <div>
+          <div class="panel-title">Con Detección de Ciclos</div>
+          <div class="panel-subtitle">Detecta repetición → explora</div>
+        </div>
+      </div>
+
+      <div class="status-badge idle" id="status2">
+        <div class="status-dot"></div>
+        <span>Esperando</span>
+      </div>
+
+      <div class="grid-world" id="grid2"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value blue" id="steps2">0</div>
+          <div class="stat-label">Pasos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value yellow" id="reward2">0</div>
+          <div class="stat-label">Recompensa</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value green" id="escapes2">0</div>
+          <div class="stat-label">Escapes</div>
+        </div>
+      </div>
+
+      <div class="log" id="log2"></div>
+
+      <div class="controls">
+        <button class="btn btn-play" onclick="runDemo(2, true)">▶ Ejecutar</button>
+        <button class="btn btn-step" onclick="stepDemo(2)">→ Paso</button>
+        <button class="btn btn-reset" onclick="resetDemo(2)">↺ Reset</button>
+      </div>
+      <div class="speed-control">
+        <label>Velocidad:</label>
+        <input type="range" min="50" max="800" value="350" id="speed2">
+        <label id="speedLabel2">350ms</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="explanation">
+    <h2>¿Qué está pasando?</h2>
+    <p>
+      Un agente de Reinforcement Learning tiene una <strong>política</strong> que le dice qué acción tomar en cada estado.
+      Si la política es mala, puede hacer que el agente repita las mismas acciones indefinidamente sin llegar a la meta.
+    </p>
+    <p>
+      En este ejemplo, el grid es 3×3 con un muro en el centro. El agente 🤖 empieza en (0,0) y debe llegar al trofeo 🏆 en (2,2).
+      La política mala le dice que vaya ← desde (1,2), pero el muro lo bloquea, así que se queda atrapado repitiendo la misma acción.
+    </p>
+
+    <div class="key-list">
+      <div class="key-item">
+        <div class="emoji">🔁</div>
+        <strong>El Problema</strong>
+        <span>Política determinista sin exploración = ciclo infinito garantizado ante un error.</span>
+      </div>
+      <div class="key-item">
+        <div class="emoji">🛡️</div>
+        <strong>Max Steps</strong>
+        <span>Limitar episodios a N pasos máximo. Lo más simple y esencial.</span>
+      </div>
+      <div class="key-item">
+        <div class="emoji">🔍</div>
+        <strong>Detección de Ciclos</strong>
+        <span>Contar visitas a estados y forzar exploración al detectar repetición.</span>
+      </div>
+      <div class="key-item">
+        <div class="emoji">🎲</div>
+        <strong>ε-Greedy</strong>
+        <span>Con probabilidad ε, tomar acción aleatoria en vez de la que dice la política.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Reinforcement Learning · Cycle Detection Demo · 2025
+  </div>
+</div>
+
+<script>
+// ── Game State ──
+const SIZE = 3;
+const WALL = [1, 1];
+const GOAL = [2, 2];
+const START = [0, 0];
+const ACTIONS = { 0: '↑ arriba', 1: '→ derecha', 2: '↓ abajo', 3: '← izquierda' };
+const ACTION_ARROWS = { 0: '↑', 1: '→', 2: '↓', 3: '←' };
+const MAX_STEPS = 30;
+const CYCLE_THRESHOLD = 2;
+
+const state = {
+  1: { pos: [...START], steps: 0, reward: 0, repeats: 0, history: [], running: false, done: false, interval: null },
+  2: { pos: [...START], steps: 0, reward: 0, escapes: 0, history: [], running: false, done: false, interval: null }
+};
+
+// ── Bad Policy ──
+function badPolicy(pos) {
+  const key = `${pos[0]},${pos[1]}`;
+  const policy = {
+    '0,0': 1, '0,1': 1, '0,2': 2,
+    '1,2': 3, // ← BUG: should be 2 (down)
+    '1,0': 0,
+  };
+  return policy[key] ?? 1;
+}
+
+// ── Environment step ──
+function envStep(pos, action) {
+  let [r, c] = pos;
+  if (action === 0) r--;
+  else if (action === 1) c++;
+  else if (action === 2) r++;
+  else if (action === 3) c--;
+
+  r = Math.max(0, Math.min(SIZE - 1, r));
+  c = Math.max(0, Math.min(SIZE - 1, c));
+
+  if (r === WALL[0] && c === WALL[1]) { r = pos[0]; c = pos[1]; }
+
+  const done = (r === GOAL[0] && c === GOAL[1]);
+  const reward = done ? 10 : -0.1;
+
+  return { pos: [r, c], reward, done };
+}
+
+// ── Render Grid ──
+function renderGrid(panelId) {
+  const s = state[panelId];
+  const container = document.getElementById(`grid${panelId}`);
+  container.innerHTML = '';
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      const isAgent = s.pos[0] === r && s.pos[1] === c;
+      const isWall = r === WALL[0] && c === WALL[1];
+      const isGoal = r === GOAL[0] && c === GOAL[1];
+      const visited = s.history.some(h => h[0] === r && h[1] === c);
+
+      if (isWall) {
+        cell.classList.add('wall');
+      } else if (isAgent && s.done) {
+        cell.classList.add('agent', 'success');
+        cell.textContent = '🎉';
+      } else if (isAgent && s.repeats > 3 && panelId === 1) {
+        cell.classList.add('agent', 'stuck');
+        cell.textContent = '🤖';
+      } else if (isAgent) {
+        cell.classList.add('agent');
+        cell.textContent = '🤖';
+      } else if (isGoal) {
+        cell.classList.add('goal');
+        cell.textContent = '🏆';
+      } else if (visited) {
+        cell.classList.add(panelId === 1 && s.repeats > 3 ? 'visited-stuck' : 'visited');
+      }
+
+      const coord = document.createElement('span');
+      coord.className = 'coord';
+      coord.textContent = `${r},${c}`;
+      cell.appendChild(coord);
+      container.appendChild(cell);
+    }
+  }
+}
+
+// ── Render Stats ──
+function renderStats(panelId) {
+  const s = state[panelId];
+  document.getElementById(`steps${panelId}`).textContent = s.steps;
+  document.getElementById(`reward${panelId}`).textContent = s.reward.toFixed(1);
+  if (panelId === 1) {
+    document.getElementById(`repeats${panelId}`).textContent = s.repeats;
+  } else {
+    document.getElementById(`escapes${panelId}`).textContent = s.escapes;
+  }
+}
+
+// ── Log ──
+function addLog(panelId, html) {
+  const log = document.getElementById(`log${panelId}`);
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = html;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Status Badge ──
+function setStatus(panelId, type, text) {
+  const badge = document.getElementById(`status${panelId}`);
+  badge.className = `status-badge ${type}`;
+  badge.innerHTML = `<div class="status-dot"></div><span>${text}</span>`;
+}
+
+// ── Single Step ──
+function doStep(panelId) {
+  const s = state[panelId];
+  if (s.done || s.steps >= MAX_STEPS) return false;
+
+  let action;
+  let escaped = false;
+
+  if (panelId === 2) {
+    // With cycle detection
+    const visits = s.history.filter(h => h[0] === s.pos[0] && h[1] === s.pos[1]).length;
+    if (visits >= CYCLE_THRESHOLD) {
+      const original = badPolicy(s.pos);
+      const options = [0, 1, 2, 3].filter(a => a !== original);
+      action = options[Math.floor(Math.random() * options.length)];
+      escaped = true;
+      s.escapes++;
+      addLog(panelId, `<span class="cycle">⚠️ Ciclo en (${s.pos}) visitado ${visits}x → exploración forzada</span>`);
+    } else {
+      action = badPolicy(s.pos);
+    }
+  } else {
+    action = badPolicy(s.pos);
+  }
+
+  s.history.push([...s.pos]);
+  const result = envStep(s.pos, action);
+  const posChanged = result.pos[0] !== s.pos[0] || result.pos[1] !== s.pos[1];
+
+  s.pos = result.pos;
+  s.reward += result.reward;
+  s.steps++;
+  s.done = result.done;
+
+  if (!posChanged && panelId === 1) s.repeats++;
+
+  const logClass = escaped ? 'cycle' : result.done ? 'success' : 'action';
+  const stuckNote = (!posChanged && !result.done) ? ' <span class="warning">(bloqueado)</span>' : '';
+  addLog(panelId, `<span class="step-num">[${s.steps}]</span> <span class="${logClass}">${ACTION_ARROWS[action]} → (${s.pos})</span>${stuckNote}`);
+
+  if (result.done) {
+    addLog(panelId, `<span class="success">🎉 ¡META ALCANZADA en ${s.steps} pasos!</span>`);
+    setStatus(panelId, 'success', `¡Meta! ${s.steps} pasos`);
+  } else if (s.steps >= MAX_STEPS) {
+    addLog(panelId, `<span class="warning">🔴 Límite de ${MAX_STEPS} pasos alcanzado</span>`);
+    setStatus(panelId, 'stuck', 'Ciclo infinito');
+  }
+
+  renderGrid(panelId);
+  renderStats(panelId);
+
+  return !result.done && s.steps < MAX_STEPS;
+}
+
+// ── Step button ──
+function stepDemo(panelId) {
+  const s = state[panelId];
+  if (s.running) { stopDemo(panelId); return; }
+  if (s.done || s.steps >= MAX_STEPS) { resetDemo(panelId); return; }
+  setStatus(panelId, 'running', 'En ejecución...');
+  doStep(panelId);
+}
+
+// ── Run continuously ──
+function runDemo(panelId) {
+  const s = state[panelId];
+  if (s.running) { stopDemo(panelId); return; }
+  if (s.done || s.steps >= MAX_STEPS) resetDemo(panelId);
+
+  s.running = true;
+  setStatus(panelId, 'running', 'En ejecución...');
+
+  function tick() {
+    if (!s.running) return;
+    const canContinue = doStep(panelId);
+    if (canContinue) {
+      const speed = parseInt(document.getElementById(`speed${panelId}`).value);
+      s.interval = setTimeout(tick, speed);
+    } else {
+      s.running = false;
+    }
+  }
+  tick();
+}
+
+function stopDemo(panelId) {
+  const s = state[panelId];
+  s.running = false;
+  if (s.interval) clearTimeout(s.interval);
+  setStatus(panelId, 'idle', 'Pausado');
+}
+
+// ── Reset ──
+function resetDemo(panelId) {
+  stopDemo(panelId);
+  const s = state[panelId];
+  s.pos = [...START];
+  s.steps = 0;
+  s.reward = 0;
+  s.repeats = 0;
+  s.escapes = 0;
+  s.history = [];
+  s.done = false;
+
+  document.getElementById(`log${panelId}`).innerHTML = '';
+  setStatus(panelId, 'idle', 'Esperando');
+  renderGrid(panelId);
+  renderStats(panelId);
+}
+
+// ── Speed labels ──
+document.getElementById('speed1').addEventListener('input', e => {
+  document.getElementById('speedLabel1').textContent = e.target.value + 'ms';
+});
+document.getElementById('speed2').addEventListener('input', e => {
+  document.getElementById('speedLabel2').textContent = e.target.value + 'ms';
+});
+
+// ── Init ──
+renderGrid(1);
+renderGrid(2);
+renderStats(1);
+renderStats(2);
+</script>
+
+</body>
+</html>
