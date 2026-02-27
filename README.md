@@ -2,7 +2,7 @@
 
 An interactive visualization that demonstrates how a Reinforcement Learning agent can get trapped in an infinite loop due to a poorly designed policy — and how cycle detection can rescue it.
 
-## 🎯 What This Demonstrates
+##  What This Demonstrates
 
 In Reinforcement Learning, an agent follows a **policy** that maps states to actions. If the policy has flaws, the agent can repeat the same actions indefinitely without ever reaching its goal. This is a well-known failure mode with real implications for RL systems, including LLM-based agents.
 
@@ -14,7 +14,7 @@ This demo presents a **3×3 grid world** where:
 
 The agent's policy contains a bug: at position `(1,2)` — just one step above the goal — it moves left instead of down, causing it to bounce against the wall forever.
 
-## 🖥️ Live Demo
+##  Live Demo
 
 **[👉 Open the Demo](https://jhonzacipa.github.io/rl-cycle-demo/)**
 
@@ -34,7 +34,7 @@ The demo runs two scenarios simultaneously:
 3. Instead of following the flawed policy, the agent takes a **random alternative action**
 4. This exploration breaks the cycle and allows the agent to discover a path to the goal
 
-## 🛡️ Common Solutions for Infinite Loops in RL
+##  Common Solutions for Infinite Loops in RL
 
 | Technique | Description |
 |-----------|-------------|
