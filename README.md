@@ -1,3 +1,5 @@
+[![es](https://img.shields.io/badge/lang-es-yellow.svg)](README.es.md)
+
 # RL Infinite Loop Demo
 
 A small interactive demo showing how an RL agent gets stuck in an infinite loop when its policy has a bug — and how a simple cycle detection mechanism pulls it out.
@@ -15,24 +17,24 @@ The setup is a **3×3 grid world**:
 
 ## Two scenarios, side by side
 
-- **Sin protección** — la política con bug corre sin control. El agente nunca llega a la meta.
+🔴 **No protection** — the buggy policy runs unchecked. The agent never reaches the goal.
 
-- **Con cycle detection** — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
+🟢 **Cycle detection** — same bad policy, but the agent tracks how many times it visits each state. Once a threshold is hit, it ignores the policy and picks a random action instead. That's enough to break the cycle.
 
-## Otras formas de manejar esto
+## Other ways to handle this
 
-| Técnica | Cómo ayuda |
-|---------|-----------|
-| **Max steps** | Cortar el episodio después de N pasos |
-| **Step penalty** | Recompensa negativa por paso, desalienta el vagabundeo |
-| **Cycle detection** | Lo que usa este demo — rastrear visitas y forzar exploración |
-| **ε-Greedy** | Acción aleatoria con probabilidad ε sin importar la política |
-| **Curiosity / intrinsic reward** | Recompensar al agente por visitar estados nuevos |
-| **Discount factor γ < 1** | Los ciclos largos se vuelven menos atractivos |
+| Technique | How it helps |
+|-----------|-------------|
+| **Max steps** | Cut the episode after N steps |
+| **Step penalty** | Small negative reward per action discourages wandering |
+| **Cycle detection** | What this demo uses — track visits, force exploration |
+| **ε-Greedy** | Random action with probability ε regardless of policy |
+| **Curiosity / intrinsic reward** | Reward the agent for visiting new states |
+| **Discount factor γ < 1** | Long cycles become less attractive |
 
-## Correrlo localmente
+## Running it locally
 
-Sin dependencias, solo abre el HTML.
+No dependencies, just open the HTML file.
 
 ```bash
 git clone https://github.com/JhonZacipa/rl-cycle-demo.git
