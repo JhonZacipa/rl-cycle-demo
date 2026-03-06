@@ -3,7 +3,7 @@
 
 ## `README.es.md` (Español)
 
-```markdown
+
 [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 
 # RL Infinite Loop Demo
