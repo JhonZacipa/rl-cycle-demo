@@ -17,9 +17,9 @@ The setup is a **3×3 grid world**:
 
 ## Two scenarios, side by side
 
-🔴 **No protection** — the buggy policy runs unchecked. The agent never reaches the goal.
+- **No protection** — the buggy policy runs unchecked. The agent never reaches the goal.
 
-🟢 **Cycle detection** — same bad policy, but the agent tracks how many times it visits each state. Once a threshold is hit, it ignores the policy and picks a random action instead. That's enough to break the cycle.
+- **Cycle detection** — same bad policy, but the agent tracks how many times it visits each state. Once a threshold is hit, it ignores the policy and picks a random action instead. That's enough to break the cycle.
 
 ## Other ways to handle this
 
