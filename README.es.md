@@ -23,9 +23,9 @@ El escenario es un **grid world de 3×3**:
 
 ## Dos escenarios en paralelo
 
-🔴 **Sin protección** — la política con bug corre sin control. El agente nunca llega a la meta.
+- **Sin protección** — la política con bug corre sin control. El agente nunca llega a la meta.
 
-🟢 **Con cycle detection** — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
+- **Con cycle detection** — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
 
 ## Otras formas de manejar esto
 
