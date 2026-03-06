@@ -1,73 +1,41 @@
-# 🔁 RL Infinite Loop Demo
+RL Infinite Loop Demo
+A small interactive demo showing how an RL agent gets stuck in an infinite loop when its policy has a bug — and how a simple cycle detection mechanism pulls it out.
 
-An interactive visualization that demonstrates how a Reinforcement Learning agent can get trapped in an infinite loop due to a poorly designed policy — and how cycle detection can rescue it.
+What it shows
+RL agents follow a policy: given a state, do this action. When that policy has flaws, the agent can bounce between the same states forever without ever reaching the goal. It's a common failure mode, and it shows up not just in classic RL but also in LLM-based agents.
 
-##  What This Demonstrates
+The setup is a 3×3 grid world:
 
-In Reinforcement Learning, an agent follows a **policy** that maps states to actions. If the policy has flaws, the agent can repeat the same actions indefinitely without ever reaching its goal. This is a well-known failure mode with real implications for RL systems, including LLM-based agents.
+Agent starts at (0,0), goal at (2,2), wall at (1,1)
 
-This demo presents a **3×3 grid world** where:
+The policy has a deliberate bug: at (1,2) — one step above the goal — the agent moves left instead of down, colliding with the wall and looping forever
 
-- 🤖 The agent starts at position `(0,0)`
-- 🏆 The goal is at position `(2,2)`
-- 🧱 A wall blocks position `(1,1)`
+→ Live demo
+Two scenarios, side by side
+- Sin protección — la política con bug corre sin control. El agente nunca llega a la meta.
 
-The agent's policy contains a bug: at position `(1,2)` — just one step above the goal — it moves left instead of down, causing it to bounce against the wall forever.
+- Con cycle detection — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
 
-##  Live Demo
+Otras formas de manejar esto
+Técnica	Cómo ayuda
+Max steps	Cortar el episodio después de N pasos
+Step penalty	Recompensa negativa por paso, desalienta el vagabundeo
+Cycle detection	Lo que usa este demo — rastrear visitas y forzar exploración
+ε-Greedy	Acción aleatoria con probabilidad ε sin importar la política
+Curiosity / intrinsic reward	Recompensar al agente por visitar estados nuevos
+Discount factor γ < 1	Los ciclos largos se vuelven menos atractivos
+Correrlo localmente
+Sin dependencias, solo abre el HTML.
 
-**[👉 Open the Demo](https://jhonzacipa.github.io/rl-cycle-demo/)**
-
-## 🔬 Side-by-Side Comparison
-
-The demo runs two scenarios simultaneously:
-
-| Scenario | Description | Outcome |
-|----------|-------------|---------|
-| 🔴 **No Protection** | Deterministic bad policy with no safeguards | Agent gets stuck in an infinite loop |
-| 🟢 **Cycle Detection** | Same bad policy + visit counting + forced exploration | Agent escapes the cycle and reaches the goal |
-
-### How Cycle Detection Works
-
-1. The agent maintains a **history of visited states**
-2. When a state has been visited more than a **threshold** number of times, a cycle is detected
-3. Instead of following the flawed policy, the agent takes a **random alternative action**
-4. This exploration breaks the cycle and allows the agent to discover a path to the goal
-
-##  Common Solutions for Infinite Loops in RL
-
-| Technique | Description |
-|-----------|-------------|
-| **Max Steps** | Terminate episodes after N steps — the simplest safeguard |
-| **Step Penalty** | Small negative reward per action, incentivizing shorter paths |
-| **Cycle Detection** | Track state visits and force exploration on repetition |
-| **ε-Greedy** | With probability ε, take a random action instead of the policy's choice |
-| **Curiosity-Driven Exploration** | Intrinsic reward for visiting novel states |
-| **Discount Factor (γ < 1)** | Future rewards decay, discouraging long cycles |
-
-## 🚀 Usage
-
-No dependencies required. Just open `index.html` in any modern browser.
-
-```bash
+bash
 git clone https://github.com/JhonZacipa/rl-cycle-demo.git
 cd rl-cycle-demo
 open index.html
-```
+Controles: Run para ejecutar, Step para avanzar acción por acción, Reset para reiniciar, y un slider de velocidad entre 50ms y 800ms.
 
-### Controls
+Contexto
+Lo construí mientras estudiaba IA en la Universidad de los Andes. Me interesó el tema porque el mismo problema de loops aparece en agentes LLM — un agente puede reintentar una tool call fallida en bucle, o reformular la misma búsqueda una y otra vez. Frameworks como LangChain y AutoGen tienen límites de iteración exactamente por eso.
 
-- **▶ Run** — Execute the simulation automatically
-- **→ Step** — Advance one step at a time
-- **↺ Reset** — Restart the simulation
-- **Speed Slider** — Adjust animation speed (50ms–800ms)
-
-## 📚 Context
-
-This demo was built as part of my studies in **Artificial Intelligence (M.Sc.)** at Universidad de los Andes, exploring the intersection between Reinforcement Learning and LLM-based agents.
-
-The same infinite loop problem applies to **LLM agents** that use tools: an agent might repeatedly reformulate a search query, retry a failed API call, or loop through the same reasoning steps. Frameworks like LangChain and AutoGen implement iteration limits for exactly this reason.
-
-## 📄 License
-
+Licencia
 MIT
+
