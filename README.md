@@ -1,41 +1,40 @@
-RL Infinite Loop Demo
+# RL Infinite Loop Demo
+
 A small interactive demo showing how an RL agent gets stuck in an infinite loop when its policy has a bug — and how a simple cycle detection mechanism pulls it out.
 
-What it shows
-RL agents follow a policy: given a state, do this action. When that policy has flaws, the agent can bounce between the same states forever without ever reaching the goal. It's a common failure mode, and it shows up not just in classic RL but also in LLM-based agents.
+## What it shows
 
-The setup is a 3×3 grid world:
+RL agents follow a policy: given a state, do this action. When that policy has flaws, the agent can bounce between the same states forever without ever reaching the goal. It's a common failure mode, and it shows up not just in classic RL but also in **LLM-based agents**.
 
-Agent starts at (0,0), goal at (2,2), wall at (1,1)
+The setup is a **3×3 grid world**:
 
-The policy has a deliberate bug: at (1,2) — one step above the goal — the agent moves left instead of down, colliding with the wall and looping forever
+- Agent starts at `(0,0)`, goal at `(2,2)`, wall at `(1,1)`
+- The policy has a deliberate bug: at `(1,2)` — one step above the goal — the agent moves **left** instead of down, colliding with the wall and looping forever
 
-→ Live demo
-Two scenarios, side by side
-- Sin protección — la política con bug corre sin control. El agente nunca llega a la meta.
+## [→ Live demo](https://jhonzacipa.github.io/rl-cycle-demo/)
 
-- Con cycle detection — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
+## Two scenarios, side by side
 
-Otras formas de manejar esto
-Técnica	Cómo ayuda
-Max steps	Cortar el episodio después de N pasos
-Step penalty	Recompensa negativa por paso, desalienta el vagabundeo
-Cycle detection	Lo que usa este demo — rastrear visitas y forzar exploración
-ε-Greedy	Acción aleatoria con probabilidad ε sin importar la política
-Curiosity / intrinsic reward	Recompensar al agente por visitar estados nuevos
-Discount factor γ < 1	Los ciclos largos se vuelven menos atractivos
-Correrlo localmente
+- **Sin protección** — la política con bug corre sin control. El agente nunca llega a la meta.
+
+- **Con cycle detection** — misma política, pero el agente rastrea cuántas veces visita cada estado. Al superar un umbral, ignora la política y elige una acción aleatoria. Eso es suficiente para romper el ciclo.
+
+## Otras formas de manejar esto
+
+| Técnica | Cómo ayuda |
+|---------|-----------|
+| **Max steps** | Cortar el episodio después de N pasos |
+| **Step penalty** | Recompensa negativa por paso, desalienta el vagabundeo |
+| **Cycle detection** | Lo que usa este demo — rastrear visitas y forzar exploración |
+| **ε-Greedy** | Acción aleatoria con probabilidad ε sin importar la política |
+| **Curiosity / intrinsic reward** | Recompensar al agente por visitar estados nuevos |
+| **Discount factor γ < 1** | Los ciclos largos se vuelven menos atractivos |
+
+## Correrlo localmente
+
 Sin dependencias, solo abre el HTML.
 
-bash
+```bash
 git clone https://github.com/JhonZacipa/rl-cycle-demo.git
 cd rl-cycle-demo
 open index.html
-Controles: Run para ejecutar, Step para avanzar acción por acción, Reset para reiniciar, y un slider de velocidad entre 50ms y 800ms.
-
-Contexto
-Lo construí mientras estudiaba IA en la Universidad de los Andes. Me interesó el tema porque el mismo problema de loops aparece en agentes LLM — un agente puede reintentar una tool call fallida en bucle, o reformular la misma búsqueda una y otra vez. Frameworks como LangChain y AutoGen tienen límites de iteración exactamente por eso.
-
-Licencia
-MIT
-
